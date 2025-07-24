@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include "strooct/string.h"
+#include "strooct/token.h"
 
 int main(void) {
-    ST_String str1, str2;
-    
-    ST_STRING_SET_LITERAL(str1, "Hello");
-    ST_STRING_SET_LITERAL(str2, "Helloooo");
+    ST_TokenKind kind = {0};
+    int result = st_token_try_get_keyword("STRUCT", &kind);
 
-    printf("Compare %d\n", st_string_cmp(str1, str2));
-    printf("Equals %d\n", st_string_equals(str1, str2));
+    printf("Result=%d\n", result);
+    printf("Kind=%d\n", kind);
 
     return 0;
 }
