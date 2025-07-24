@@ -62,7 +62,7 @@ static struct {
     MAPPING(ST_TOKEN_END_UNION, "END_UNION"),
 };
 
-bool st_token_try_get_keyword(const char *str_ptr, ST_TokenKind *kind) {
+bool st_token_try_get_keyword(const char *str_ptr, ST_TokenKind *kind, size_t *literal_len) {
     int i;
     for (i = 0; i < KEYWORD_MAPPING_LEN; ++i) {
         /*
@@ -71,8 +71,10 @@ bool st_token_try_get_keyword(const char *str_ptr, ST_TokenKind *kind) {
         if one keyword starts with another keyword, ensure the longer one occures first,
         else the shorter one will always get picked
         */
-        if (strncmp(str_ptr, keyword_mapping[i].literal.ptr, keyword_mapping[i].literal.len) == 0) {
+       size_t len = keyword_mapping[i].literal.len;
+        if (strncmp(str_ptr, keyword_mapping[i].literal.ptr, len) == 0) {
             *kind = keyword_mapping[i].kind;
+            *literal_len = len;
             return true;
         }
     }

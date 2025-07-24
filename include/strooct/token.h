@@ -104,6 +104,6 @@ typedef struct {
     ST_TokenKind kind;
 } ST_Token;
 
-bool st_token_try_get_keyword(const char *data, ST_TokenKind *kind);
+bool st_token_try_get_keyword(const char *data, ST_TokenKind *kind, size_t *literal_len);
 
 #endif
