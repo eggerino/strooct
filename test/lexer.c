@@ -70,7 +70,35 @@ TEST lexer_test(void) {
         "STRUCT\n"
         "END_STRUCT\n"
         "UNION\n"
-        "END_UNION\n");
+        "END_UNION\n"
+
+        /* Operators */
+        "+\n"
+        "-\n"
+        "*\n"
+        "/\n"
+        ":=\n"
+
+        "=\n"
+        "<>\n"
+        ">\n"
+        ">=\n"
+        "<\n"
+        "<=\n"
+
+        /* Delimiters */
+        ".\n"
+        ",\n"
+        ":\n"
+        ";\n"
+
+        "(\n"
+        ")\n"
+        "[\n"
+        "]\n"
+        "{\n"
+        "}\n"
+    );
 
     ST_Lexer l;
     ST_Token t;
@@ -118,6 +146,27 @@ TEST lexer_test(void) {
     ASSERT_NEXT_TOKEN(ST_TOKEN_END_STRUCT, 282, 41, 0, "END_STRUCT", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_UNION, 293, 42, 0, "UNION", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_END_UNION, 299, 43, 0, "END_UNION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_PLUS, 309, 44, 0, "+", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_MINUS, 311, 45, 0, "-", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_ASTERISK, 313, 46, 0, "*", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_SLASH, 315, 47, 0, "/", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_ASSIGN, 317, 48, 0, ":=", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_EQUALS, 320, 49, 0, "=", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NOT_EQUALS, 322, 50, 0, "<>", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_GREATER_THAN, 325, 51, 0, ">", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_GREATER_THAN_OR_EQUALS, 327, 52, 0, ">=", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_LESS_THAN, 330, 53, 0, "<", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_LESS_THAN_OR_EQUALS, 332, 54, 0, "<=", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_DOT, 335, 55, 0, ".", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_COMMA, 337, 56, 0, ",", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_COLON, 339, 57, 0, ":", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_SEMI_COLON, 341, 58, 0, ";", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_LEFT_PARENTHESIS, 343, 59, 0, "(", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_PARENTHESIS, 345, 60, 0, ")", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_LEFT_BRACKET, 347, 61, 0, "[", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_BRACKET, 349, 62, 0, "]", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_LEFT_BRACE, 351, 63, 0, "{", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_BRACE, 353, 64, 0, "}", t);
 
     ASSERT(!st_lexer_next_token(&l, &t));
     PASS();
