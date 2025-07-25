@@ -1,0 +1,126 @@
+#include "strooct/lexer.h"
+
+#include <string.h>
+
+#include "greatest/greatest.h"
+
+#define ASSERT_NEXT_TOKEN(exp_kind, exp_pos, exp_line, exp_col, exp_lit, actual) \
+    ASSERT(st_lexer_next_token(&l, &t));                                         \
+    ASSERT(exp_kind == actual.kind);                                             \
+    ASSERT(exp_pos == actual.pos);                                               \
+    ASSERT(exp_line == actual.line);                                             \
+    ASSERT(exp_col == actual.col);                                               \
+    ASSERT(sizeof(exp_lit) - 1 == actual.literal.len);                           \
+    ASSERT(strncmp(exp_lit, actual.literal.ptr, actual.literal.len) == 0)
+
+TEST lexer_test(void) {
+    ST_String src_file = ST_STRING_LITERAL("Some file.st");
+    ST_String src = ST_STRING_LITERAL(
+        /* whitespace noise at the start */
+        " \t\r\n\n  "
+
+        /* Keywords */
+        /* Logic */
+        "NOT\n"
+        "TRUE\n"
+        "FALSE\n"
+        "AND\n"
+        "OR\n"
+        "XOR\n"
+
+        /* Control flow */
+        "IF\n"
+        "THEN\n"
+        "ELSIF\n"
+        "ELSE\n"
+        "END_IF\n"
+        "CASE\n"
+        "OF\n"
+        "END_CASE\n"
+        "FOR\n"
+        "TO\n"
+        "BY\n"
+        "DO\n"
+        "END_FOR\n"
+        "WHILE\n"
+        "END_WHILE\n"
+
+        /* Program / Action / Function / Function block */
+        "PROGRAM\n"
+        "END_PROGRAM\n"
+        "EXIT\n"
+        "ACTION\n"
+        "END_ACTION\n"
+        "FUNCTION\n"
+        "END_FUNCTION\n"
+        "FUNCTION_BLOCK\n"
+        "END_FUNCTION_BLOCK\n"
+        "RETURN\n"
+
+        /* Variable declarations */
+        "VAR\n"
+        "VAR_INPUT\n"
+        "VAR_OUTPUT\n"
+        "CONSTANT\n"
+        "END_VAR\n"
+
+        /* Type declarations */
+        "TYPE\n"
+        "END_TYPE\n"
+        "STRUCT\n"
+        "END_STRUCT\n"
+        "UNION\n"
+        "END_UNION\n");
+
+    ST_Lexer l;
+    ST_Token t;
+    st_lexer_init(src_file, src, &l);
+
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NOT, 7, 2, 2, "NOT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TRUE, 11, 3, 0, "TRUE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_FALSE, 16, 4, 0, "FALSE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_AND, 22, 5, 0, "AND", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_OR, 26, 6, 0, "OR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_XOR, 29, 7, 0, "XOR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_IF, 33, 8, 0, "IF", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_THEN, 36, 9, 0, "THEN", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_ELSIF, 41, 10, 0, "ELSIF", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_ELSE, 47, 11, 0, "ELSE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_IF, 52, 12, 0, "END_IF", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_CASE, 59, 13, 0, "CASE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_OF, 64, 14, 0, "OF", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_CASE, 67, 15, 0, "END_CASE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_FOR, 76, 16, 0, "FOR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TO, 80, 17, 0, "TO", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_BY, 83, 18, 0, "BY", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_DO, 86, 19, 0, "DO", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_FOR, 89, 20, 0, "END_FOR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_WHILE, 97, 21, 0, "WHILE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_WHILE, 103, 22, 0, "END_WHILE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_PROGRAM, 113, 23, 0, "PROGRAM", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_PROGRAM, 121, 24, 0, "END_PROGRAM", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_EXIT, 133, 25, 0, "EXIT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_ACTION, 138, 26, 0, "ACTION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_ACTION, 145, 27, 0, "END_ACTION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_FUNCTION, 156, 28, 0, "FUNCTION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_FUNCTION, 165, 29, 0, "END_FUNCTION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_FUNCTION_BLOCK, 178, 30, 0, "FUNCTION_BLOCK", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_FUNCTION_BLOCK, 193, 31, 0, "END_FUNCTION_BLOCK", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_RETURN, 212, 32, 0, "RETURN", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_VAR, 219, 33, 0, "VAR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_VAR_INPUT, 223, 34, 0, "VAR_INPUT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_VAR_OUTPUT, 233, 35, 0, "VAR_OUTPUT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_CONSTANT, 244, 36, 0, "CONSTANT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_VAR, 253, 37, 0, "END_VAR", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TYPE, 261, 38, 0, "TYPE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_TYPE, 266, 39, 0, "END_TYPE", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_STRUCT, 275, 40, 0, "STRUCT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_STRUCT, 282, 41, 0, "END_STRUCT", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_UNION, 293, 42, 0, "UNION", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_END_UNION, 299, 43, 0, "END_UNION", t);
+
+    ASSERT(!st_lexer_next_token(&l, &t));
+    PASS();
+}
+
+SUITE(lexer_suite) { RUN_TEST(lexer_test); }

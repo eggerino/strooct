@@ -1,6 +1,7 @@
 #include "strooct/token.h"
 
 #include <string.h>
+
 #include "strooct/string.h"
 
 #define KEYWORD_MAPPING_LEN 42
@@ -47,9 +48,9 @@ static struct {
     MAPPING(ST_TOKEN_RETURN, "RETURN"),
 
     /* Variable declarations */
-    MAPPING(ST_TOKEN_VAR, "VAR"),
     MAPPING(ST_TOKEN_VAR_INPUT, "VAR_INPUT"),
     MAPPING(ST_TOKEN_VAR_OUTPUT, "VAR_OUTPUT"),
+    MAPPING(ST_TOKEN_VAR, "VAR"), /* MAke sure "VAR" is check after "VAR_INPUT" and "VAR_OUTPUT" */
     MAPPING(ST_TOKEN_CONSTANT, "CONSTANT"),
     MAPPING(ST_TOKEN_END_VAR, "END_VAR"),
 
@@ -71,7 +72,7 @@ bool st_token_try_get_keyword(const char *str_ptr, ST_TokenKind *kind, size_t *l
         if one keyword starts with another keyword, ensure the longer one occures first,
         else the shorter one will always get picked
         */
-       size_t len = keyword_mapping[i].literal.len;
+        size_t len = keyword_mapping[i].literal.len;
         if (strncmp(str_ptr, keyword_mapping[i].literal.ptr, len) == 0) {
             *kind = keyword_mapping[i].kind;
             *literal_len = len;

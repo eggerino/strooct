@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 #define ST_STRING_LITERAL(str) {str, sizeof(str) - 1}
+#define ST_STRING_SET_LITERAL(var, str) (var).ptr = str; (var).len = sizeof(str) - 1
 
 typedef struct {
     char *ptr;
