@@ -16,7 +16,7 @@ static bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len
 static size_t get_whitespace_count(const ST_Lexer *l);
 static bool advance(ST_Lexer *l, size_t n);
 
-void st_lexer_init(ST_String src_file, ST_String src, ST_Lexer *l) {
+void st_lexer_init(ST_Str src_file, ST_Str src, ST_Lexer *l) {
     l->src = src;
     l->src_file = src_file;
     l->pos = 0;
@@ -25,15 +25,14 @@ void st_lexer_init(ST_String src_file, ST_String src, ST_Lexer *l) {
 }
 
 bool st_lexer_next_token(ST_Lexer *l, ST_Token *t) {
-    /* Nothing to tokenize from */
+    // Nothing to tokenize from
     if (l->src.ptr == NULL) {
         return false;
     }
 
-    /* Source is exhausted */
+    // Source is exhausted
     if (EXCEEDS(*l)) {
-        ST_String empty = {0};
-        l->src = empty;
+        l->src = (ST_Str){0};
         return false;
     }
 
@@ -41,112 +40,121 @@ bool st_lexer_next_token(ST_Lexer *l, ST_Token *t) {
 }
 
 bool next_token(ST_Lexer *l, ST_Token *t) {
-    size_t len = get_whitespace_count(l);
-    advance(l, len);
+    advance(l, get_whitespace_count(l));
 
     if (EXCEEDS(*l)) {
         return false;
     }
 
-    len = get_token(l, t);
-    advance(l, len);
+    advance(l, get_token(l, t));
     return true;
 }
 
-#define RETURN_GET_TOKEN                \
+size_t get_token(const ST_Lexer *l, ST_Token *t) {
+    ST_TokenKind kind = ST_TOKEN_ILLEGAL;
+    size_t token_lit_len = 0;
+
+    // Check keywords first
+
+#define RETURN                          \
     t->src_file = l->src_file;          \
-    t->literal.ptr = &CURRENT_CHAR(*l); \
-    t->literal.len = token_lit_len;     \
+    t->lit.ptr = &CURRENT_CHAR(*l);     \
+    t->lit.len = token_lit_len;         \
     t->pos = l->pos;                    \
     t->line = l->line;                  \
     t->col = l->col;                    \
     t->kind = kind;                     \
     return token_lit_len
 
-size_t get_token(const ST_Lexer *l, ST_Token *t) {
-    ST_TokenKind kind = ST_TOKEN_ILLEGAL;
-    size_t token_lit_len = 0;
-    /* Check keywords first */
     if (st_token_try_get_keyword(&CURRENT_CHAR(*l), &kind, &token_lit_len)) {
-        RETURN_GET_TOKEN;
+        RETURN;
     }
 
-    /* Check operators before delimiters */
+    // Check operators before delimiters
     if (try_get_operator(l, &kind, &token_lit_len)) {
-        RETURN_GET_TOKEN;
+        RETURN;
     }
 
-    /* Check delimiter */
+    // Check delimiter
     if (try_get_delimiter(CURRENT_CHAR(*l), &kind, &token_lit_len)) {
-        RETURN_GET_TOKEN;
+        RETURN;
     }
 
-    /* No correct token could be found. Consider the rest of the source string as an illegal token. */
+    // No correct token could be found. Consider the rest of the source string as an illegal token.
     kind = ST_TOKEN_ILLEGAL;
     token_lit_len = l->src.len - l->pos;
-    RETURN_GET_TOKEN;
+    RETURN;
+
+#undef RETURN
 }
 
-#define OPERATOR_1(c, k) \
+bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_len) {
+    char cur_char = CURRENT_CHAR(*l);
+
+#define MATCH_CHAR(c, k) \
     if (cur_char == c) { \
         *kind = k;       \
         *lit_len = 1;    \
     }
-#define OPERATOR_2(str, k)                         \
+#define MATCH_STR2(str, k)                         \
     if (strncmp(str, &CURRENT_CHAR(*l), 2) == 0) { \
         *kind = k;                                 \
         *lit_len = 2;                              \
     }
-bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_len) {
-    char cur_char = CURRENT_CHAR(*l);
 
-    OPERATOR_1('+', ST_TOKEN_PLUS)
-    else OPERATOR_1('-', ST_TOKEN_MINUS)
-    else OPERATOR_1('*', ST_TOKEN_ASTERISK)
-    else OPERATOR_1('/', ST_TOKEN_SLASH)
-    else OPERATOR_2(":=", ST_TOKEN_ASSIGN)
-    else OPERATOR_1('=', ST_TOKEN_EQUALS)
-    else OPERATOR_2("<>", ST_TOKEN_NOT_EQUALS)
-    else OPERATOR_2(">=", ST_TOKEN_GREATER_THAN_OR_EQUALS)  /* check or equal before strict difference */
-    else OPERATOR_1('>', ST_TOKEN_GREATER_THAN)
-    else OPERATOR_2("<=", ST_TOKEN_LESS_THAN_OR_EQUALS)
-    else OPERATOR_1('<', ST_TOKEN_LESS_THAN)
+    MATCH_CHAR('+', ST_TOKEN_PLUS)
+    else MATCH_CHAR('-', ST_TOKEN_MINUS)
+    else MATCH_CHAR('*', ST_TOKEN_ASTERISK)
+    else MATCH_CHAR('/', ST_TOKEN_SLASH)
+    else MATCH_STR2(":=", ST_TOKEN_ASSIGN)
+    else MATCH_CHAR('=', ST_TOKEN_EQUALS)
+    else MATCH_STR2("<>", ST_TOKEN_NOT_EQUALS)
+    else MATCH_STR2(">=", ST_TOKEN_GREATER_THAN_OR_EQUALS)  // check or equal before strict difference
+    else MATCH_CHAR('>', ST_TOKEN_GREATER_THAN)
+    else MATCH_STR2("<=", ST_TOKEN_LESS_THAN_OR_EQUALS)
+    else MATCH_CHAR('<', ST_TOKEN_LESS_THAN)
     else {
         return false;
     }
 
+#undef MATCH_CHAR
+#undef MATCH_STR2
+
     return true;
 }
 
-#define DELIMITER_CASE(c, k) \
-    case c:                  \
-        *kind = k;           \
-        break
 bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len) {
-    switch (cur_char) {
-        DELIMITER_CASE('.', ST_TOKEN_DOT);
-        DELIMITER_CASE(',', ST_TOKEN_COMMA);
-        DELIMITER_CASE(':', ST_TOKEN_COLON);
-        DELIMITER_CASE(';', ST_TOKEN_SEMI_COLON);
+#define CASE(c, k) \
+    case c:        \
+        *kind = k; \
+        break
 
-        DELIMITER_CASE('(', ST_TOKEN_LEFT_PARENTHESIS);
-        DELIMITER_CASE(')', ST_TOKEN_RIGHT_PARENTHESIS);
-        DELIMITER_CASE('[', ST_TOKEN_LEFT_BRACKET);
-        DELIMITER_CASE(']', ST_TOKEN_RIGHT_BRACKET);
-        DELIMITER_CASE('{', ST_TOKEN_LEFT_BRACE);
-        DELIMITER_CASE('}', ST_TOKEN_RIGHT_BRACE);
+    switch (cur_char) {
+        CASE('.', ST_TOKEN_DOT);
+        CASE(',', ST_TOKEN_COMMA);
+        CASE(':', ST_TOKEN_COLON);
+        CASE(';', ST_TOKEN_SEMI_COLON);
+
+        CASE('(', ST_TOKEN_LEFT_PARENTHESIS);
+        CASE(')', ST_TOKEN_RIGHT_PARENTHESIS);
+        CASE('[', ST_TOKEN_LEFT_BRACKET);
+        CASE(']', ST_TOKEN_RIGHT_BRACKET);
+        CASE('{', ST_TOKEN_LEFT_BRACE);
+        CASE('}', ST_TOKEN_RIGHT_BRACE);
 
         default:
             return false;
     }
+
+#undef CASE
 
     *lit_len = 1;
     return true;
 }
 
 size_t get_whitespace_count(const ST_Lexer *l) {
-    size_t count = 0, i;
-    for (i = l->pos; !EXCEEDS_AT(*l, i); ++i) {
+    size_t count = 0;
+    for (size_t i = l->pos; !EXCEEDS_AT(*l, i); ++i) {
         if (!isspace(CHAR_AT(*l, i))) {
             break;
         }
@@ -156,13 +164,12 @@ size_t get_whitespace_count(const ST_Lexer *l) {
 }
 
 bool advance(ST_Lexer *l, size_t n) {
-    /* Ensure n does not exceed the source string */
-    size_t max_n, i;
-    max_n = l->src.len - l->pos;
+    // Ensure n does not exceed the source string
+    size_t max_n = l->src.len - l->pos;
     n = max_n < n ? max_n : n;
 
-    for (i = 0; i < n; ++i) {
-        /* Track new lines */
+    for (size_t i = 0; i < n; ++i) {
+        // Track new lines
         if (CURRENT_CHAR(*l) == '\n') {
             l->line++;
             l->col = 0;

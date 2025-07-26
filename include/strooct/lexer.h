@@ -7,15 +7,15 @@
 #include "strooct/string.h"
 #include "strooct/token.h"
 
-typedef struct {
-    ST_String src;
-    ST_String src_file;
+typedef struct ST_Lexer {
+    ST_Str src_file;
+    ST_Str src;
     size_t pos;
     size_t line;
     size_t col;
 } ST_Lexer;
 
-void st_lexer_init(ST_String src_file, ST_String src, ST_Lexer *l);
+void st_lexer_init(ST_Str src_file, ST_Str src, ST_Lexer *l);
 bool st_lexer_next_token(ST_Lexer *l, ST_Token *t);
 
 #endif

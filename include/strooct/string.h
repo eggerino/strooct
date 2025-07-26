@@ -3,16 +3,18 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
-#define ST_STRING_LITERAL(str) {str, sizeof(str) - 1}
-#define ST_STRING_SET_LITERAL(var, str) (var).ptr = str; (var).len = sizeof(str) - 1
+#define ST_STR_LIT(lit) ((ST_Str){lit, sizeof(lit) - 1})
+#define ST_STR_CSTR(str) ((ST_Str){str, strlen(str)})
 
-typedef struct {
+typedef struct ST_Str {
     char *ptr;
     size_t len;
-} ST_String;
+} ST_Str;
 
-int st_string_cmp(ST_String str1, ST_String str2);
-bool st_string_equals(ST_String str1, ST_String str2);
+int st_str_cmp(ST_Str a, ST_Str b);
+bool st_str_equal(ST_Str a, ST_Str b);
+ST_Str st_str_slice(ST_Str str, size_t offset, size_t len);
 
 #endif

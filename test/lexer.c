@@ -10,17 +10,16 @@
     ASSERT(exp_pos == actual.pos);                                               \
     ASSERT(exp_line == actual.line);                                             \
     ASSERT(exp_col == actual.col);                                               \
-    ASSERT(sizeof(exp_lit) - 1 == actual.literal.len);                           \
-    ASSERT(strncmp(exp_lit, actual.literal.ptr, actual.literal.len) == 0)
+    ASSERT(st_str_equal(ST_STR_LIT(exp_lit), actual.lit))
 
 TEST lexer_test(void) {
-    ST_String src_file = ST_STRING_LITERAL("Some file.st");
-    ST_String src = ST_STRING_LITERAL(
-        /* whitespace noise at the start */
+    ST_Str src_file = ST_STR_LIT("Some file.st");
+    ST_Str src = ST_STR_LIT(
+        // whitespace noise at the start
         " \t\r\n\n  "
 
-        /* Keywords */
-        /* Logic */
+        // Keywords
+        // Logic
         "NOT\n"
         "TRUE\n"
         "FALSE\n"
@@ -28,7 +27,7 @@ TEST lexer_test(void) {
         "OR\n"
         "XOR\n"
 
-        /* Control flow */
+        // Control flow
         "IF\n"
         "THEN\n"
         "ELSIF\n"
@@ -45,7 +44,7 @@ TEST lexer_test(void) {
         "WHILE\n"
         "END_WHILE\n"
 
-        /* Program / Action / Function / Function block */
+        // Program / Action / Function / Function block
         "PROGRAM\n"
         "END_PROGRAM\n"
         "EXIT\n"
@@ -57,14 +56,14 @@ TEST lexer_test(void) {
         "END_FUNCTION_BLOCK\n"
         "RETURN\n"
 
-        /* Variable declarations */
+        // Variable declarations
         "VAR\n"
         "VAR_INPUT\n"
         "VAR_OUTPUT\n"
         "CONSTANT\n"
         "END_VAR\n"
 
-        /* Type declarations */
+        // Type declarations
         "TYPE\n"
         "END_TYPE\n"
         "STRUCT\n"
@@ -72,7 +71,7 @@ TEST lexer_test(void) {
         "UNION\n"
         "END_UNION\n"
 
-        /* Operators */
+        // Operators
         "+\n"
         "-\n"
         "*\n"
@@ -86,7 +85,7 @@ TEST lexer_test(void) {
         "<\n"
         "<=\n"
 
-        /* Delimiters */
+        // Delimiters
         ".\n"
         ",\n"
         ":\n"
@@ -97,8 +96,7 @@ TEST lexer_test(void) {
         "[\n"
         "]\n"
         "{\n"
-        "}\n"
-    );
+        "}\n");
 
     ST_Lexer l;
     ST_Token t;

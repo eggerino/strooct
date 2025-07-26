@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(strooct)
-set(CMAKE_C_STANDARD 90)
+set(CMAKE_C_STANDARD 99)
 
 # Main library
 add_library(strooct
