@@ -13,6 +13,7 @@ static bool next_token(ST_Lexer *l, ST_Token *t);
 static size_t get_token(const ST_Lexer *l, ST_Token *t);
 static bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_len);
 static bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len);
+bool try_get_string(const ST_Lexer *l, size_t *lit_len);
 static size_t get_whitespace_count(const ST_Lexer *l);
 static bool advance(ST_Lexer *l, size_t n);
 
@@ -77,6 +78,12 @@ size_t get_token(const ST_Lexer *l, ST_Token *t) {
 
     // Check delimiter
     if (try_get_delimiter(CURRENT_CHAR(*l), &kind, &token_lit_len)) {
+        RETURN;
+    }
+
+    // Check string literals
+    if (try_get_string(l, &token_lit_len)) {
+        kind = ST_TOKEN_STRING;
         RETURN;
     }
 
@@ -150,6 +157,23 @@ bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len) {
 
     *lit_len = 1;
     return true;
+}
+
+bool try_get_string(const ST_Lexer *l, size_t *lit_len) {
+    char start_quote = CURRENT_CHAR(*l);
+    if (start_quote != '\'' && start_quote != '"') {
+        return false;
+    }
+
+    for (size_t peak = l->pos + 1; peak < l->src.len; ++peak) {
+        if (CHAR_AT(*l, peak) == start_quote) {
+            *lit_len = peak - l->pos + 1;
+            return true;
+        }
+    }
+
+    // string is not terminated by quotes
+    return false;
 }
 
 size_t get_whitespace_count(const ST_Lexer *l) {

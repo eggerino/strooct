@@ -96,7 +96,12 @@ TEST lexer_test(void) {
         "[\n"
         "]\n"
         "{\n"
-        "}\n");
+        "}\n"
+    
+        // Literals
+        "\"Hello World'\"\n"
+        "'Hello World\"'"
+    );
 
     ST_Lexer l;
     ST_Token t;
@@ -165,6 +170,8 @@ TEST lexer_test(void) {
     ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_BRACKET, 349, 62, 0, "]", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_LEFT_BRACE, 351, 63, 0, "{", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_BRACE, 353, 64, 0, "}", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_STRING, 355, 65, 0, "\"Hello World'\"", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_STRING, 370, 66, 0, "'Hello World\"'", t);
 
     ASSERT(!st_lexer_next_token(&l, &t));
     PASS();
