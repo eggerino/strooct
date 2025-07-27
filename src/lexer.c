@@ -1,6 +1,7 @@
 #include "strooct/lexer.h"
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define CHAR_AT(l, i) (l).src.ptr[i]
@@ -15,6 +16,7 @@ static bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_
 static bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len);
 static bool try_get_string(const ST_Lexer *l, size_t *lit_len);
 static bool try_get_identifier(const ST_Lexer *l, size_t *lit_len);
+static bool try_get_number(const ST_Lexer *l, size_t *lit_len);
 static size_t get_whitespace_count(const ST_Lexer *l);
 static bool advance(ST_Lexer *l, size_t n);
 
@@ -55,9 +57,7 @@ bool next_token(ST_Lexer *l, ST_Token *t) {
 size_t get_token(const ST_Lexer *l, ST_Token *t) {
     ST_TokenKind kind = ST_TOKEN_ILLEGAL;
     size_t token_lit_len = 0;
-
-    // Check keywords first
-
+    
 #define RETURN                          \
     t->src_file = l->src_file;          \
     t->lit.ptr = &CURRENT_CHAR(*l);     \
@@ -67,8 +67,25 @@ size_t get_token(const ST_Lexer *l, ST_Token *t) {
     t->col = l->col;                    \
     t->kind = kind;                     \
     return token_lit_len
-
+    
+    // Check keywords first
     if (st_token_try_get_keyword(&CURRENT_CHAR(*l), &kind, &token_lit_len)) {
+        RETURN;
+    }
+
+    // Check literals
+    if (try_get_identifier(l, &token_lit_len)) {
+        kind = ST_TOKEN_IDENTIFIER;
+        RETURN;
+    }
+
+    if (try_get_string(l, &token_lit_len)) {
+        kind = ST_TOKEN_STRING;
+        RETURN;
+    }
+
+    if (try_get_number(l, &token_lit_len)) {
+        kind = ST_TOKEN_NUMBER;
         RETURN;
     }
 
@@ -79,18 +96,6 @@ size_t get_token(const ST_Lexer *l, ST_Token *t) {
 
     // Check delimiter
     if (try_get_delimiter(CURRENT_CHAR(*l), &kind, &token_lit_len)) {
-        RETURN;
-    }
-
-    // Check string literals
-    if (try_get_string(l, &token_lit_len)) {
-        kind = ST_TOKEN_STRING;
-        RETURN;
-    }
-
-    // Check identifier literals
-    if (try_get_identifier(l, &token_lit_len)) {
-        kind = ST_TOKEN_IDENTIFIER;
         RETURN;
     }
 
@@ -200,6 +205,20 @@ bool try_get_identifier(const ST_Lexer *l, size_t *lit_len) {
     }
 
     *lit_len = peak - l->pos;
+    return true;
+}
+
+bool try_get_number(const ST_Lexer *l, size_t *lit_len) {
+    char *start_ptr = &CURRENT_CHAR(*l);
+    char *end_ptr = NULL;
+    strtof(start_ptr, &end_ptr);
+
+    // Current character does not start a number
+    if (end_ptr <= start_ptr) {
+        return false;
+    }
+
+    *lit_len = end_ptr - start_ptr;
     return true;
 }
 

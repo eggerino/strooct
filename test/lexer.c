@@ -105,6 +105,16 @@ TEST lexer_test(void) {
         "Identier_123\n"
         "_private_Identifier321\n"
         "_123Identifier\n"
+
+        "1\n"
+        "+234\n"
+        "-43\n"
+        "1.23\n"
+        "+2.34\n"
+        "-4.21\n"
+        "1.23e8\n"
+        "+2.34E+3\n"
+        "-4.21e-4\n"
     );
 
     ST_Lexer l;
@@ -179,6 +189,15 @@ TEST lexer_test(void) {
     ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 385, 67, 0, "Identier_123", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 398, 68, 0, "_private_Identifier321", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 421, 69, 0, "_123Identifier", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 436, 70, 0, "1", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 438, 71, 0, "+234", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 443, 72, 0, "-43", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 447, 73, 0, "1.23", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 452, 74, 0, "+2.34", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 458, 75, 0, "-4.21", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 464, 76, 0, "1.23e8", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 471, 77, 0, "+2.34E+3", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 480, 78, 0, "-4.21e-4", t);
 
     ASSERT(!st_lexer_next_token(&l, &t));
     PASS();
