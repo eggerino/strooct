@@ -100,7 +100,11 @@ TEST lexer_test(void) {
     
         // Literals
         "\"Hello World'\"\n"
-        "'Hello World\"'"
+        "'Hello World\"'\n"
+
+        "Identier_123\n"
+        "_private_Identifier321\n"
+        "_123Identifier\n"
     );
 
     ST_Lexer l;
@@ -172,6 +176,9 @@ TEST lexer_test(void) {
     ASSERT_NEXT_TOKEN(ST_TOKEN_RIGHT_BRACE, 353, 64, 0, "}", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_STRING, 355, 65, 0, "\"Hello World'\"", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_STRING, 370, 66, 0, "'Hello World\"'", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 385, 67, 0, "Identier_123", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 398, 68, 0, "_private_Identifier321", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_IDENTIFIER, 421, 69, 0, "_123Identifier", t);
 
     ASSERT(!st_lexer_next_token(&l, &t));
     PASS();
