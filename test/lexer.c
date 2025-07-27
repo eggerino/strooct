@@ -115,6 +115,11 @@ TEST lexer_test(void) {
         "1.23e8\n"
         "+2.34E+3\n"
         "-4.21e-4\n"
+
+        "T#1s\n"
+        "T#1D1M1S1MS\n"
+        "T#1d1m1s1ms\n"
+        "T#1m1ms\n"
     );
 
     ST_Lexer l;
@@ -198,6 +203,10 @@ TEST lexer_test(void) {
     ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 464, 76, 0, "1.23e8", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 471, 77, 0, "+2.34E+3", t);
     ASSERT_NEXT_TOKEN(ST_TOKEN_NUMBER, 480, 78, 0, "-4.21e-4", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TIME, 489, 79, 0, "T#1s", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TIME, 494, 80, 0, "T#1D1M1S1MS", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TIME, 506, 81, 0, "T#1d1m1s1ms", t);
+    ASSERT_NEXT_TOKEN(ST_TOKEN_TIME, 518, 82, 0, "T#1m1ms", t);
 
     ASSERT(!st_lexer_next_token(&l, &t));
     PASS();

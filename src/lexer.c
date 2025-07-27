@@ -12,13 +12,15 @@
 
 static bool next_token(ST_Lexer *l, ST_Token *t);
 static size_t get_token(const ST_Lexer *l, ST_Token *t);
+static bool try_get_time(const ST_Lexer *l, size_t *lit_len);
+static bool try_get_identifier(const ST_Lexer *l, size_t *lit_len);
+static bool try_get_string(const ST_Lexer *l, size_t *lit_len);
+static bool try_get_number(const ST_Lexer *l, size_t *lit_len);
 static bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_len);
 static bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len);
-static bool try_get_string(const ST_Lexer *l, size_t *lit_len);
-static bool try_get_identifier(const ST_Lexer *l, size_t *lit_len);
-static bool try_get_number(const ST_Lexer *l, size_t *lit_len);
 static size_t get_whitespace_count(const ST_Lexer *l);
 static bool advance(ST_Lexer *l, size_t n);
+static bool is_number(const char *ptr, size_t *len);
 
 void st_lexer_init(ST_Str src_file, ST_Str src, ST_Lexer *l) {
     l->src = src;
@@ -74,6 +76,11 @@ size_t get_token(const ST_Lexer *l, ST_Token *t) {
     }
 
     // Check literals
+    if (try_get_time(l, &token_lit_len)) {
+        kind = ST_TOKEN_TIME;
+        RETURN;
+    }
+
     if (try_get_identifier(l, &token_lit_len)) {
         kind = ST_TOKEN_IDENTIFIER;
         RETURN;
@@ -105,6 +112,91 @@ size_t get_token(const ST_Lexer *l, ST_Token *t) {
     RETURN;
 
 #undef RETURN
+}
+
+bool try_get_time(const ST_Lexer *l, size_t *lit_len) {
+    // Must start with "T#"
+    if (strncmp("T#", &CURRENT_CHAR(*l), 2)) {
+        return false;
+    }
+
+#define UNITS_COUNT 10
+    const char *units[10] = {"d", "D", "h", "H", "m", "M", "s", "S", "ms", "MS"};
+
+    size_t peak = l->pos + 2;
+    size_t len;
+    if (!is_number(&CHAR_AT(*l, peak), &len)) {
+        return false;
+    }
+    peak += len;
+
+    for (int i = 0; i < UNITS_COUNT; ++i) {
+        if (strncmp(units[i], &CHAR_AT(*l, peak), strlen(units[i]))) {
+            continue;
+        }
+
+        peak += strlen(units[i]);
+
+        if (is_number(&CHAR_AT(*l, peak), &len)) {
+            // consume the number
+            peak += len;
+
+            // Skip the upper version if the lower occured
+            if (i % 2 == 0) {
+                ++i;
+            }
+        } else {
+            // Time is done when no number comes after an unit
+            *lit_len = peak - l->pos;
+            return true;
+        }
+    }
+
+    // Invalid time when loop runs through
+    return false;
+
+#undef UNITS_COUNT
+}
+
+bool try_get_identifier(const ST_Lexer *l, size_t *lit_len) {
+    // First character must be an "_" or a letter
+    char first_char = CURRENT_CHAR(*l);
+    if (first_char != '_' && !isalpha(first_char)) {
+        return false;
+    }
+
+    size_t peak;
+    for (peak = l->pos + 1; peak < l->src.len; ++peak) {
+        // consecutive character must be "_"s, letters or numbers
+        char cur_char = CHAR_AT(*l, peak);
+        if (cur_char != '_' && !isalnum(cur_char)) {
+            break;
+        }
+    }
+
+    *lit_len = peak - l->pos;
+    return true;
+}
+
+bool try_get_string(const ST_Lexer *l, size_t *lit_len) {
+    char start_quote = CURRENT_CHAR(*l);
+    if (start_quote != '\'' && start_quote != '"') {
+        return false;
+    }
+
+    for (size_t peak = l->pos + 1; peak < l->src.len; ++peak) {
+        if (CHAR_AT(*l, peak) == start_quote) {
+            *lit_len = peak - l->pos + 1;
+            return true;
+        }
+    }
+
+    // string is not terminated by quotes
+    return false;
+}
+
+bool try_get_number(const ST_Lexer *l, size_t *lit_len) {
+    return is_number(&CURRENT_CHAR(*l), lit_len);
 }
 
 bool try_get_operator(const ST_Lexer *l, ST_TokenKind *kind, size_t *lit_len) {
@@ -171,57 +263,6 @@ bool try_get_delimiter(char cur_char, ST_TokenKind *kind, size_t *lit_len) {
     return true;
 }
 
-bool try_get_string(const ST_Lexer *l, size_t *lit_len) {
-    char start_quote = CURRENT_CHAR(*l);
-    if (start_quote != '\'' && start_quote != '"') {
-        return false;
-    }
-
-    for (size_t peak = l->pos + 1; peak < l->src.len; ++peak) {
-        if (CHAR_AT(*l, peak) == start_quote) {
-            *lit_len = peak - l->pos + 1;
-            return true;
-        }
-    }
-
-    // string is not terminated by quotes
-    return false;
-}
-
-bool try_get_identifier(const ST_Lexer *l, size_t *lit_len) {
-    // First character must be an "_" or a letter
-    char first_char = CURRENT_CHAR(*l);
-    if (first_char != '_' && !isalpha(first_char)) {
-        return false;
-    }
-
-    size_t peak;
-    for (peak = l->pos + 1; peak < l->src.len; ++peak) {
-        // consecutive character must be "_"s, letters or numbers
-        char cur_char = CHAR_AT(*l, peak);
-        if (cur_char != '_' && !isalnum(cur_char)) {
-            break;
-        }
-    }
-
-    *lit_len = peak - l->pos;
-    return true;
-}
-
-bool try_get_number(const ST_Lexer *l, size_t *lit_len) {
-    char *start_ptr = &CURRENT_CHAR(*l);
-    char *end_ptr = NULL;
-    strtof(start_ptr, &end_ptr);
-
-    // Current character does not start a number
-    if (end_ptr <= start_ptr) {
-        return false;
-    }
-
-    *lit_len = end_ptr - start_ptr;
-    return true;
-}
-
 size_t get_whitespace_count(const ST_Lexer *l) {
     size_t count = 0;
     for (size_t i = l->pos; !EXCEEDS_AT(*l, i); ++i) {
@@ -251,4 +292,16 @@ bool advance(ST_Lexer *l, size_t n) {
     }
 
     return n > 0;
+}
+
+bool is_number(const char *ptr, size_t *len) {
+    char *end_ptr = NULL;
+    strtof(ptr, &end_ptr);
+
+    if (end_ptr <= ptr) {
+        return false;
+    }
+
+    *len = end_ptr - ptr;
+    return true;
 }
