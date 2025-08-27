@@ -162,7 +162,7 @@ impl<'a> Token<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum NumberValue {
     Int(usize),
     Float(f64),

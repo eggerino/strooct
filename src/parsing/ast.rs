@@ -8,8 +8,8 @@ pub enum Block {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Statement {
-    ExpressionStatement(Expression),
+pub struct Statement {
+    pub expr: Expression,
 }
 
 #[derive(Debug, PartialEq)]

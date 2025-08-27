@@ -1,5 +1,5 @@
 use crate::parsing::{
-    ast::{Ast, Block, Statement},
+    ast::{Ast, Block, Expression, Statement},
     lexer::Lexer,
     token::{MarkedToken, Token},
 };
@@ -100,19 +100,72 @@ where
         self.advance();
 
         let mut statements = Vec::new();
-        while let Some(t) = &self.cur
-            && !matches!(t.token, Token::EndProgram)
-        {
+        while let Some(cur) = &self.cur {
+            // Correct ending of a program
+            if cur.token == Token::EndProgram {
+                return Some(Block::Program(identifier, statements));
+            }
+
             if let Some(statement) = self.parse_statement() {
                 statements.push(statement);
             }
+            self.advance();
         }
 
-        return Some(Block::Program(identifier, statements));
+        error_out(
+            &mut self.errors,
+            &format!(
+                "Program {identifier} is not properly closed. Try adding a END_PROGRAM to the end."
+            ),
+        )
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
-        None
+        let expr = self.parse_expression()?;
+        self.advance();
+
+        match &self.cur {
+            Some(cur) => match cur.token {
+                Token::SemiColon => Some(Statement { expr }),
+                _ => token_error_out(
+                    &mut self.errors,
+                    cur,
+                    "Expected a semi colon at the end of the statement.",
+                ),
+            },
+            None => error_out(
+                &mut self.errors,
+                "Statement at the end of the file is missing a semi colon.",
+            ),
+        }
+    }
+
+    fn parse_expression(&mut self) -> Option<Expression> {
+        match &self.cur {
+            Some(cur) => match &cur.token {
+                Token::Identifier(_) => todo!(),
+                Token::Number(_, x) => Some(Expression::LiteralNumber(x.clone())),
+                Token::String(_) => todo!(),
+                Token::Time(_, time_value) => todo!(),
+                Token::Plus => todo!(),
+                Token::Minus => todo!(),
+                Token::LeftParenthesis => todo!(),
+                Token::Not => todo!(),
+                Token::True => todo!(),
+                Token::False => todo!(),
+                Token::Exit => todo!(),
+                Token::Return => todo!(),
+                _ => token_error_out(
+                    &mut self.errors,
+                    cur,
+                    "Invalid token kind for an expression.",
+                ),
+            },
+            None => error_out(
+                &mut self.errors,
+                "No more tokens left but expected an expression.",
+            ),
+        }
     }
 }
 
@@ -162,12 +215,14 @@ fn get_precedence(t: &Token) -> u8 {
 
 #[cfg(test)]
 mod tests {
+    use crate::parsing::token::NumberValue;
+
     use super::*;
 
     #[test]
     fn test_program_block() {
         let src_file = "Some file.st";
-        let src = "PROGRAM MyProgram END_PROGRAM\n";
+        let src = "PROGRAM MyProgram 1; END_PROGRAM\n";
         let l = Lexer::create(src_file, src);
 
         let result = parse(l);
@@ -175,6 +230,14 @@ mod tests {
         assert!(result.is_ok());
         let ast = result.unwrap();
 
-        assert_eq!(ast[0], Block::Program("MyProgram".to_string(), vec![]));
+        assert_eq!(
+            ast[0],
+            Block::Program(
+                "MyProgram".to_string(),
+                vec![Statement {
+                    expr: Expression::LiteralNumber(NumberValue::Int(1))
+                }]
+            )
+        );
     }
 }
