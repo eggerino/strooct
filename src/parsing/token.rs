@@ -4,15 +4,17 @@ pub struct SourceMarker<'a> {
     pub line: usize,
     pub col: usize,
     pub src_file: &'a str,
+    pub src: &'a str,
 }
 
 impl<'a> SourceMarker<'a> {
-    pub fn create_start(src_file: &'a str) -> Self {
+    pub fn create_start(src_file: &'a str, src: &'a str) -> Self {
         Self {
             pos: 0,
             line: 0,
             col: 0,
             src_file,
+            src,
         }
     }
 
@@ -29,19 +31,9 @@ impl<'a> SourceMarker<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct NumberData {
-    pub int: usize,
-    pub float: f64,
-}
-
-impl NumberData {
-    pub fn create_integer(int: usize) -> Self {
-        Self { int, float: 0.0 }
-    }
-
-    pub fn create_float(float: f64) -> Self {
-        Self { int: 0, float }
-    }
+pub enum NumberData {
+    Int(usize),
+    Float(f64),
 }
 
 #[derive(Debug, PartialEq)]
@@ -69,6 +61,7 @@ pub enum Token<'a> {
     Minus,
     Asterisk,
     Slash,
+    Percent,
     Assign,
 
     Equals,

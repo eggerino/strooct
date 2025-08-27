@@ -16,7 +16,7 @@ impl<'a> Lexer<'a> {
     pub fn create(src_file: &'a str, src: &'a str) -> Self {
         Self {
             src,
-            marker: SourceMarker::create_start(src_file),
+            marker: SourceMarker::create_start(src_file, src),
         }
     }
 
@@ -201,14 +201,11 @@ impl<'a> Lexer<'a> {
         match numeric_len(self.src) {
             None => None,
             Some(n) => match str::parse::<usize>(&self.src[..n]) {
-                Ok(int) => Some((
-                    Token::Number(&self.src[..n], NumberData::create_integer(int)),
-                    n,
-                )),
+                Ok(int) => Some((Token::Number(&self.src[..n], NumberData::Int(int)), n)),
                 _ => Some((
                     Token::Number(
                         &self.src[..n],
-                        NumberData::create_float(
+                        NumberData::Float(
                             str::parse(&self.src[..n])
                                 .expect("Must be a float when numeric and not integer"),
                         ),
@@ -225,6 +222,7 @@ impl<'a> Lexer<'a> {
             s if s.starts_with("-") => Some((Token::Minus, 1)),
             s if s.starts_with("*") => Some((Token::Asterisk, 1)),
             s if s.starts_with("/") => Some((Token::Slash, 1)),
+            s if s.starts_with("%") => Some((Token::Percent, 1)),
             s if s.starts_with(":=") => Some((Token::Assign, 2)),
             s if s.starts_with("=") => Some((Token::Equals, 1)),
             s if s.starts_with("<>") => Some((Token::NotEquals, 2)),
@@ -283,6 +281,7 @@ mod tests {
     fn exp(
         t: Token<'static>,
         src_file: &'static str,
+        src: &'static str,
         pos: usize,
         line: usize,
         col: usize,
@@ -292,6 +291,7 @@ mod tests {
             pos,
             line,
             col,
+            src,
         }))
     }
 
@@ -306,6 +306,7 @@ mod tests {
             l.marker,
             SourceMarker {
                 src_file,
+                src,
                 pos: 7,
                 line: 2,
                 col: 2
@@ -361,48 +362,54 @@ END_UNION
 "#;
         let mut l = Lexer::create(src_file, src);
 
-        assert_eq!(l.next(), exp(Token::Not, src_file, 0, 0, 0));
-        assert_eq!(l.next(), exp(Token::True, src_file, 4, 1, 0));
-        assert_eq!(l.next(), exp(Token::False, src_file, 9, 2, 0));
-        assert_eq!(l.next(), exp(Token::And, src_file, 15, 3, 0));
-        assert_eq!(l.next(), exp(Token::Or, src_file, 19, 4, 0));
-        assert_eq!(l.next(), exp(Token::Xor, src_file, 22, 5, 0));
-        assert_eq!(l.next(), exp(Token::If, src_file, 26, 6, 0));
-        assert_eq!(l.next(), exp(Token::Then, src_file, 29, 7, 0));
-        assert_eq!(l.next(), exp(Token::Elsif, src_file, 34, 8, 0));
-        assert_eq!(l.next(), exp(Token::Else, src_file, 40, 9, 0));
-        assert_eq!(l.next(), exp(Token::EndIf, src_file, 45, 10, 0));
-        assert_eq!(l.next(), exp(Token::Case, src_file, 52, 11, 0));
-        assert_eq!(l.next(), exp(Token::Of, src_file, 57, 12, 0));
-        assert_eq!(l.next(), exp(Token::EndCase, src_file, 60, 13, 0));
-        assert_eq!(l.next(), exp(Token::For, src_file, 69, 14, 0));
-        assert_eq!(l.next(), exp(Token::To, src_file, 73, 15, 0));
-        assert_eq!(l.next(), exp(Token::By, src_file, 76, 16, 0));
-        assert_eq!(l.next(), exp(Token::Do, src_file, 79, 17, 0));
-        assert_eq!(l.next(), exp(Token::EndFor, src_file, 82, 18, 0));
-        assert_eq!(l.next(), exp(Token::While, src_file, 90, 19, 0));
-        assert_eq!(l.next(), exp(Token::EndWhile, src_file, 96, 20, 0));
-        assert_eq!(l.next(), exp(Token::Program, src_file, 106, 21, 0));
-        assert_eq!(l.next(), exp(Token::EndProgram, src_file, 114, 22, 0));
-        assert_eq!(l.next(), exp(Token::Exit, src_file, 126, 23, 0));
-        assert_eq!(l.next(), exp(Token::Action, src_file, 131, 24, 0));
-        assert_eq!(l.next(), exp(Token::EndAction, src_file, 138, 25, 0));
-        assert_eq!(l.next(), exp(Token::Function, src_file, 149, 26, 0));
-        assert_eq!(l.next(), exp(Token::EndFunction, src_file, 158, 27, 0));
-        assert_eq!(l.next(), exp(Token::FunctionBlock, src_file, 171, 28, 0));
-        assert_eq!(l.next(), exp(Token::EndFunctionBlock, src_file, 186, 29, 0));
-        assert_eq!(l.next(), exp(Token::Return, src_file, 205, 30, 0));
-        assert_eq!(l.next(), exp(Token::Var, src_file, 212, 31, 0));
-        assert_eq!(l.next(), exp(Token::VarInput, src_file, 216, 32, 0));
-        assert_eq!(l.next(), exp(Token::VarOutput, src_file, 226, 33, 0));
-        assert_eq!(l.next(), exp(Token::Constant, src_file, 237, 34, 0));
-        assert_eq!(l.next(), exp(Token::EndVar, src_file, 246, 35, 0));
-        assert_eq!(l.next(), exp(Token::Type, src_file, 254, 36, 0));
-        assert_eq!(l.next(), exp(Token::EndType, src_file, 259, 37, 0));
-        assert_eq!(l.next(), exp(Token::Struct, src_file, 268, 38, 0));
-        assert_eq!(l.next(), exp(Token::EndStruct, src_file, 275, 39, 0));
-        assert_eq!(l.next(), exp(Token::Union, src_file, 286, 40, 0));
-        assert_eq!(l.next(), exp(Token::EndUnion, src_file, 292, 41, 0));
+        assert_eq!(l.next(), exp(Token::Not, src_file, src, 0, 0, 0));
+        assert_eq!(l.next(), exp(Token::True, src_file, src, 4, 1, 0));
+        assert_eq!(l.next(), exp(Token::False, src_file, src, 9, 2, 0));
+        assert_eq!(l.next(), exp(Token::And, src_file, src, 15, 3, 0));
+        assert_eq!(l.next(), exp(Token::Or, src_file, src, 19, 4, 0));
+        assert_eq!(l.next(), exp(Token::Xor, src_file, src, 22, 5, 0));
+        assert_eq!(l.next(), exp(Token::If, src_file, src, 26, 6, 0));
+        assert_eq!(l.next(), exp(Token::Then, src_file, src, 29, 7, 0));
+        assert_eq!(l.next(), exp(Token::Elsif, src_file, src, 34, 8, 0));
+        assert_eq!(l.next(), exp(Token::Else, src_file, src, 40, 9, 0));
+        assert_eq!(l.next(), exp(Token::EndIf, src_file, src, 45, 10, 0));
+        assert_eq!(l.next(), exp(Token::Case, src_file, src, 52, 11, 0));
+        assert_eq!(l.next(), exp(Token::Of, src_file, src, 57, 12, 0));
+        assert_eq!(l.next(), exp(Token::EndCase, src_file, src, 60, 13, 0));
+        assert_eq!(l.next(), exp(Token::For, src_file, src, 69, 14, 0));
+        assert_eq!(l.next(), exp(Token::To, src_file, src, 73, 15, 0));
+        assert_eq!(l.next(), exp(Token::By, src_file, src, 76, 16, 0));
+        assert_eq!(l.next(), exp(Token::Do, src_file, src, 79, 17, 0));
+        assert_eq!(l.next(), exp(Token::EndFor, src_file, src, 82, 18, 0));
+        assert_eq!(l.next(), exp(Token::While, src_file, src, 90, 19, 0));
+        assert_eq!(l.next(), exp(Token::EndWhile, src_file, src, 96, 20, 0));
+        assert_eq!(l.next(), exp(Token::Program, src_file, src, 106, 21, 0));
+        assert_eq!(l.next(), exp(Token::EndProgram, src_file, src, 114, 22, 0));
+        assert_eq!(l.next(), exp(Token::Exit, src_file, src, 126, 23, 0));
+        assert_eq!(l.next(), exp(Token::Action, src_file, src, 131, 24, 0));
+        assert_eq!(l.next(), exp(Token::EndAction, src_file, src, 138, 25, 0));
+        assert_eq!(l.next(), exp(Token::Function, src_file, src, 149, 26, 0));
+        assert_eq!(l.next(), exp(Token::EndFunction, src_file, src, 158, 27, 0));
+        assert_eq!(
+            l.next(),
+            exp(Token::FunctionBlock, src_file, src, 171, 28, 0)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::EndFunctionBlock, src_file, src, 186, 29, 0)
+        );
+        assert_eq!(l.next(), exp(Token::Return, src_file, src, 205, 30, 0));
+        assert_eq!(l.next(), exp(Token::Var, src_file, src, 212, 31, 0));
+        assert_eq!(l.next(), exp(Token::VarInput, src_file, src, 216, 32, 0));
+        assert_eq!(l.next(), exp(Token::VarOutput, src_file, src, 226, 33, 0));
+        assert_eq!(l.next(), exp(Token::Constant, src_file, src, 237, 34, 0));
+        assert_eq!(l.next(), exp(Token::EndVar, src_file, src, 246, 35, 0));
+        assert_eq!(l.next(), exp(Token::Type, src_file, src, 254, 36, 0));
+        assert_eq!(l.next(), exp(Token::EndType, src_file, src, 259, 37, 0));
+        assert_eq!(l.next(), exp(Token::Struct, src_file, src, 268, 38, 0));
+        assert_eq!(l.next(), exp(Token::EndStruct, src_file, src, 275, 39, 0));
+        assert_eq!(l.next(), exp(Token::Union, src_file, src, 286, 40, 0));
+        assert_eq!(l.next(), exp(Token::EndUnion, src_file, src, 292, 41, 0));
 
         assert_eq!(l.next(), None);
     }
@@ -414,6 +421,7 @@ END_UNION
 -
 *
 /
+%
 :=
 =
 <>
@@ -423,20 +431,24 @@ END_UNION
 <="#;
         let mut l = Lexer::create(src_file, src);
 
-        assert_eq!(l.next(), exp(Token::Plus, src_file, 0, 0, 0));
-        assert_eq!(l.next(), exp(Token::Minus, src_file, 2, 1, 0));
-        assert_eq!(l.next(), exp(Token::Asterisk, src_file, 4, 2, 0));
-        assert_eq!(l.next(), exp(Token::Slash, src_file, 6, 3, 0));
-        assert_eq!(l.next(), exp(Token::Assign, src_file, 8, 4, 0));
-        assert_eq!(l.next(), exp(Token::Equals, src_file, 11, 5, 0));
-        assert_eq!(l.next(), exp(Token::NotEquals, src_file, 13, 6, 0));
-        assert_eq!(l.next(), exp(Token::GreaterThan, src_file, 16, 7, 0));
+        assert_eq!(l.next(), exp(Token::Plus, src_file, src, 0, 0, 0));
+        assert_eq!(l.next(), exp(Token::Minus, src_file, src, 2, 1, 0));
+        assert_eq!(l.next(), exp(Token::Asterisk, src_file, src, 4, 2, 0));
+        assert_eq!(l.next(), exp(Token::Slash, src_file, src, 6, 3, 0));
+        assert_eq!(l.next(), exp(Token::Percent, src_file, src, 8, 4, 0));
+        assert_eq!(l.next(), exp(Token::Assign, src_file, src, 10, 5, 0));
+        assert_eq!(l.next(), exp(Token::Equals, src_file, src, 13, 6, 0));
+        assert_eq!(l.next(), exp(Token::NotEquals, src_file, src, 15, 7, 0));
+        assert_eq!(l.next(), exp(Token::GreaterThan, src_file, src, 18, 8, 0));
         assert_eq!(
             l.next(),
-            exp(Token::GreaterThanOrEquals, src_file, 18, 8, 0)
+            exp(Token::GreaterThanOrEquals, src_file, src, 20, 9, 0)
         );
-        assert_eq!(l.next(), exp(Token::LessThan, src_file, 21, 9, 0));
-        assert_eq!(l.next(), exp(Token::LessThanOrEquals, src_file, 23, 10, 0));
+        assert_eq!(l.next(), exp(Token::LessThan, src_file, src, 23, 10, 0));
+        assert_eq!(
+            l.next(),
+            exp(Token::LessThanOrEquals, src_file, src, 25, 11, 0)
+        );
 
         assert_eq!(l.next(), None);
     }
@@ -456,16 +468,22 @@ END_UNION
 }"#;
         let mut l = Lexer::create(src_file, src);
 
-        assert_eq!(l.next(), exp(Token::Dot, src_file, 0, 0, 0));
-        assert_eq!(l.next(), exp(Token::Comma, src_file, 2, 1, 0));
-        assert_eq!(l.next(), exp(Token::Colon, src_file, 4, 2, 0));
-        assert_eq!(l.next(), exp(Token::SemiColon, src_file, 6, 3, 0));
-        assert_eq!(l.next(), exp(Token::LeftParenthesis, src_file, 8, 4, 0));
-        assert_eq!(l.next(), exp(Token::RightParenthesis, src_file, 10, 5, 0));
-        assert_eq!(l.next(), exp(Token::LeftBracket, src_file, 12, 6, 0));
-        assert_eq!(l.next(), exp(Token::RightBracket, src_file, 14, 7, 0));
-        assert_eq!(l.next(), exp(Token::LeftBrace, src_file, 16, 8, 0));
-        assert_eq!(l.next(), exp(Token::RightBrace, src_file, 18, 9, 0));
+        assert_eq!(l.next(), exp(Token::Dot, src_file, src, 0, 0, 0));
+        assert_eq!(l.next(), exp(Token::Comma, src_file, src, 2, 1, 0));
+        assert_eq!(l.next(), exp(Token::Colon, src_file, src, 4, 2, 0));
+        assert_eq!(l.next(), exp(Token::SemiColon, src_file, src, 6, 3, 0));
+        assert_eq!(
+            l.next(),
+            exp(Token::LeftParenthesis, src_file, src, 8, 4, 0)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::RightParenthesis, src_file, src, 10, 5, 0)
+        );
+        assert_eq!(l.next(), exp(Token::LeftBracket, src_file, src, 12, 6, 0));
+        assert_eq!(l.next(), exp(Token::RightBracket, src_file, src, 14, 7, 0));
+        assert_eq!(l.next(), exp(Token::LeftBrace, src_file, src, 16, 8, 0));
+        assert_eq!(l.next(), exp(Token::RightBrace, src_file, src, 18, 9, 0));
 
         assert_eq!(l.next(), None);
     }
@@ -492,21 +510,22 @@ T#1m1ms"#;
 
         assert_eq!(
             l.next(),
-            exp(Token::String("\"Hello World'\""), src_file, 0, 0, 0)
+            exp(Token::String("\"Hello World'\""), src_file, src, 0, 0, 0)
         );
         assert_eq!(
             l.next(),
-            exp(Token::String("'Hello World\"'"), src_file, 15, 1, 0)
+            exp(Token::String("'Hello World\"'"), src_file, src, 15, 1, 0)
         );
         assert_eq!(
             l.next(),
-            exp(Token::Identifier("Identier_123"), src_file, 30, 2, 0)
+            exp(Token::Identifier("Identier_123"), src_file, src, 30, 2, 0)
         );
         assert_eq!(
             l.next(),
             exp(
                 Token::Identifier("_private_Identifier321"),
                 src_file,
+                src,
                 43,
                 3,
                 0
@@ -514,13 +533,14 @@ T#1m1ms"#;
         );
         assert_eq!(
             l.next(),
-            exp(Token::Identifier("_123Identifier"), src_file, 66, 4, 0)
+            exp(Token::Identifier("_123Identifier"), src_file, src, 66, 4, 0)
         );
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1", NumberData::create_integer(1)),
+                Token::Number("1", NumberData::Int(1)),
                 src_file,
+                src,
                 81,
                 5,
                 0
@@ -529,8 +549,9 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("234", NumberData::create_integer(234)),
+                Token::Number("234", NumberData::Int(234)),
                 src_file,
+                src,
                 83,
                 6,
                 0
@@ -539,8 +560,9 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1.23", NumberData::create_float(1.23)),
+                Token::Number("1.23", NumberData::Float(1.23)),
                 src_file,
+                src,
                 87,
                 7,
                 0
@@ -549,8 +571,9 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1.23e8", NumberData::create_float(1.23e8)),
+                Token::Number("1.23e8", NumberData::Float(1.23e8)),
                 src_file,
+                src,
                 92,
                 8,
                 0
@@ -559,8 +582,9 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("2.34E+3", NumberData::create_float(2.34e3)),
+                Token::Number("2.34E+3", NumberData::Float(2.34e3)),
                 src_file,
+                src,
                 99,
                 9,
                 0
@@ -569,8 +593,9 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("4.21e-4", NumberData::create_float(4.21e-4)),
+                Token::Number("4.21e-4", NumberData::Float(4.21e-4)),
                 src_file,
+                src,
                 107,
                 10,
                 0
@@ -590,6 +615,7 @@ T#1m1ms"#;
                     }
                 ),
                 src_file,
+                src,
                 115,
                 11,
                 0
@@ -609,6 +635,7 @@ T#1m1ms"#;
                     }
                 ),
                 src_file,
+                src,
                 120,
                 12,
                 0
@@ -628,6 +655,7 @@ T#1m1ms"#;
                     }
                 ),
                 src_file,
+                src,
                 134,
                 13,
                 0
@@ -647,6 +675,7 @@ T#1m1ms"#;
                     }
                 ),
                 src_file,
+                src,
                 148,
                 14,
                 0
@@ -662,15 +691,21 @@ T#1m1ms"#;
         let src = "#include \"header.h\" #load \"variables.var\"";
         let mut l = Lexer::create(src_file, src);
 
-        assert_eq!(l.next(), exp(Token::Pragma("#include"), src_file, 0, 0, 0));
         assert_eq!(
             l.next(),
-            exp(Token::String("\"header.h\""), src_file, 9, 0, 9)
+            exp(Token::Pragma("#include"), src_file, src, 0, 0, 0)
         );
-        assert_eq!(l.next(), exp(Token::Pragma("#load"), src_file, 20, 0, 20));
         assert_eq!(
             l.next(),
-            exp(Token::String("\"variables.var\""), src_file, 26, 0, 26)
+            exp(Token::String("\"header.h\""), src_file, src, 9, 0, 9)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::Pragma("#load"), src_file, src, 20, 0, 20)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::String("\"variables.var\""), src_file, src, 26, 0, 26)
         );
 
         assert_eq!(l.next(), None);
@@ -686,11 +721,17 @@ T#1m1ms"#;
 *)"#;
         let mut l = Lexer::create(src_file, src);
 
-        assert_eq!(l.next(), exp(Token::Comment("// Hello"), src_file, 0, 0, 0));
-        assert_eq!(l.next(), exp(Token::Comment("// World"), src_file, 9, 1, 0));
         assert_eq!(
             l.next(),
-            exp(Token::Comment("(*\n Stuff\n*)"), src_file, 18, 2, 0)
+            exp(Token::Comment("// Hello"), src_file, src, 0, 0, 0)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::Comment("// World"), src_file, src, 9, 1, 0)
+        );
+        assert_eq!(
+            l.next(),
+            exp(Token::Comment("(*\n Stuff\n*)"), src_file, src, 18, 2, 0)
         );
 
         assert_eq!(l.next(), None);
