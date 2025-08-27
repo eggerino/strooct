@@ -1,4 +1,4 @@
-use crate::parsing::token::{MarkedToken, NumberData, SourceMarker, TimeData, Token};
+use crate::parsing::token::{MarkedToken, Marker, NumberValue, TimeValue, Token};
 use nom::number::complete::double;
 
 fn numeric_len(s: &str) -> Option<usize> {
@@ -7,7 +7,7 @@ fn numeric_len(s: &str) -> Option<usize> {
 
 pub struct Lexer<'a> {
     src: &'a str,
-    marker: SourceMarker<'a>,
+    marker: Marker<'a>,
 }
 
 type TokenResult<'a> = Option<(Token<'a>, usize)>;
@@ -16,7 +16,7 @@ impl<'a> Lexer<'a> {
     pub fn create(src_file: &'a str, src: &'a str) -> Self {
         Self {
             src,
-            marker: SourceMarker::create_start(src_file, src),
+            marker: Marker::create(src_file, src),
         }
     }
 
@@ -111,7 +111,7 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        let mut data = TimeData {
+        let mut data = TimeValue {
             days: 0,
             hours: 0,
             minutes: 0,
@@ -201,11 +201,11 @@ impl<'a> Lexer<'a> {
         match numeric_len(self.src) {
             None => None,
             Some(n) => match str::parse::<usize>(&self.src[..n]) {
-                Ok(int) => Some((Token::Number(&self.src[..n], NumberData::Int(int)), n)),
+                Ok(int) => Some((Token::Number(&self.src[..n], NumberValue::Int(int)), n)),
                 _ => Some((
                     Token::Number(
                         &self.src[..n],
-                        NumberData::Float(
+                        NumberValue::Float(
                             str::parse(&self.src[..n])
                                 .expect("Must be a float when numeric and not integer"),
                         ),
@@ -278,6 +278,18 @@ impl<'a> Iterator for Lexer<'a> {
 mod tests {
     use super::*;
 
+    fn marker(
+        src_file: &'static str,
+        src: &'static str,
+        pos: usize,
+        line: usize,
+        col: usize,
+    ) -> Marker<'static> {
+        let mut marker = Marker::create(src_file, src);
+        marker.set(pos, line, col);
+        marker
+    }
+
     fn exp(
         t: Token<'static>,
         src_file: &'static str,
@@ -286,13 +298,7 @@ mod tests {
         line: usize,
         col: usize,
     ) -> Option<MarkedToken<'static>> {
-        Some(t.mark(SourceMarker {
-            src_file,
-            pos,
-            line,
-            col,
-            src,
-        }))
+        Some(t.mark(marker(src_file, src, pos, line, col)))
     }
 
     #[test]
@@ -302,16 +308,7 @@ mod tests {
         let mut l = Lexer::create(src_file, src);
 
         assert_eq!(l.next(), None);
-        assert_eq!(
-            l.marker,
-            SourceMarker {
-                src_file,
-                src,
-                pos: 7,
-                line: 2,
-                col: 2
-            }
-        );
+        assert_eq!(l.marker, marker(src_file, src, 7, 2, 2));
     }
 
     #[test]
@@ -538,7 +535,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1", NumberData::Int(1)),
+                Token::Number("1", NumberValue::Int(1)),
                 src_file,
                 src,
                 81,
@@ -549,7 +546,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("234", NumberData::Int(234)),
+                Token::Number("234", NumberValue::Int(234)),
                 src_file,
                 src,
                 83,
@@ -560,7 +557,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1.23", NumberData::Float(1.23)),
+                Token::Number("1.23", NumberValue::Float(1.23)),
                 src_file,
                 src,
                 87,
@@ -571,7 +568,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("1.23e8", NumberData::Float(1.23e8)),
+                Token::Number("1.23e8", NumberValue::Float(1.23e8)),
                 src_file,
                 src,
                 92,
@@ -582,7 +579,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("2.34E+3", NumberData::Float(2.34e3)),
+                Token::Number("2.34E+3", NumberValue::Float(2.34e3)),
                 src_file,
                 src,
                 99,
@@ -593,7 +590,7 @@ T#1m1ms"#;
         assert_eq!(
             l.next(),
             exp(
-                Token::Number("4.21e-4", NumberData::Float(4.21e-4)),
+                Token::Number("4.21e-4", NumberValue::Float(4.21e-4)),
                 src_file,
                 src,
                 107,
@@ -606,7 +603,7 @@ T#1m1ms"#;
             exp(
                 Token::Time(
                     "T#1s",
-                    TimeData {
+                    TimeValue {
                         days: 0,
                         hours: 0,
                         minutes: 0,
@@ -626,7 +623,7 @@ T#1m1ms"#;
             exp(
                 Token::Time(
                     "T#1D1H1M1S1MS",
-                    TimeData {
+                    TimeValue {
                         days: 1,
                         hours: 1,
                         minutes: 1,
@@ -646,7 +643,7 @@ T#1m1ms"#;
             exp(
                 Token::Time(
                     "T#1d1h1m1s1ms",
-                    TimeData {
+                    TimeValue {
                         days: 1,
                         hours: 1,
                         minutes: 1,
@@ -666,7 +663,7 @@ T#1m1ms"#;
             exp(
                 Token::Time(
                     "T#1m1ms",
-                    TimeData {
+                    TimeValue {
                         days: 0,
                         hours: 0,
                         minutes: 1,

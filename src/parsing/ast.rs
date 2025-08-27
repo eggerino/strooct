@@ -1,4 +1,6 @@
-use crate::parsing::token::NumberData;
+use crate::parsing::token::NumberValue;
+
+pub type Ast = Vec<Block>;
 
 #[derive(Debug, PartialEq)]
 pub enum Block {
@@ -12,7 +14,7 @@ pub enum Statement {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    LiteralNumber(NumberData),
+    LiteralNumber(NumberValue),
     Infix(InfixExpression),
 }
 
