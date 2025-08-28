@@ -1,21 +1,42 @@
 use crate::parsing::token::NumberValue;
 
-pub type Ast = Vec<Block>;
+pub struct Ast {
+    pub blocks: Vec<Block>,
+}
 
-#[derive(Debug, PartialEq)]
-pub enum Block {
-    Program(String, Vec<Statement>),
+impl Ast {
+    pub fn new() -> Self {
+        Self { blocks: Vec::new() }
+    }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Statement {
-    pub expr: Expression,
+pub enum Block {
+    Program(String, Statements),
+}
+
+type Statements = Vec<Statement>;
+
+#[derive(Debug, PartialEq)]
+pub enum Statement {
+    Empty,
+    Expression(Expression),
+    Return,
+    Exit,
+    If(IfCondition),
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    LiteralNumber(NumberValue),
+    Literal(LiteralExpression),
     Infix(InfixExpression),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LiteralExpression {
+    Number(NumberValue),
+    True,
+    False,
 }
 
 #[derive(Debug, PartialEq)]
@@ -32,4 +53,17 @@ pub enum InfixOperator {
     Multiplication,
     Division,
     Modulo,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IfCondition {
+    pub branch : IfConditionalBranch,
+    pub alt_branches: Vec<IfConditionalBranch>,
+    pub fallback: Option<Statements>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct IfConditionalBranch {
+    pub condition: Expression,
+    pub statements: Statements,
 }

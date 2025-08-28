@@ -51,7 +51,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn get_token(&self) -> (Token<'a>, usize) {
-        Token::from_keyword(self.src)
+        self.get_keyword_token()
             .or_else(|| self.get_line_comment_token())
             .or_else(|| self.get_block_comment_token())
             .or_else(|| self.get_pragma_token())
@@ -62,6 +62,63 @@ impl<'a> Lexer<'a> {
             .or_else(|| self.get_number_token())
             .or_else(|| self.get_delimiter_token())
             .unwrap_or((Token::Illegal, self.src.len()))
+    }
+
+    fn get_keyword_token(&self) -> TokenResult<'a> {
+        match self.src {
+            // Logic
+            s if s.starts_with("NOT") => Some((Token::Not, 3)),
+            s if s.starts_with("TRUE") => Some((Token::True, 4)),
+            s if s.starts_with("FALSE") => Some((Token::False, 5)),
+            s if s.starts_with("AND") => Some((Token::And, 3)),
+            s if s.starts_with("OR") => Some((Token::Or, 2)),
+            s if s.starts_with("XOR") => Some((Token::Xor, 3)),
+
+            // Control flow
+            s if s.starts_with("IF") => Some((Token::If, 2)),
+            s if s.starts_with("THEN") => Some((Token::Then, 4)),
+            s if s.starts_with("ELSIF") => Some((Token::Elsif, 5)),
+            s if s.starts_with("ELSE") => Some((Token::Else, 4)),
+            s if s.starts_with("END_IF") => Some((Token::EndIf, 6)),
+            s if s.starts_with("CASE") => Some((Token::Case, 4)),
+            s if s.starts_with("OF") => Some((Token::Of, 2)),
+            s if s.starts_with("END_CASE") => Some((Token::EndCase, 8)),
+            s if s.starts_with("FOR") => Some((Token::For, 3)),
+            s if s.starts_with("TO") => Some((Token::To, 2)),
+            s if s.starts_with("BY") => Some((Token::By, 2)),
+            s if s.starts_with("DO") => Some((Token::Do, 2)),
+            s if s.starts_with("END_FOR") => Some((Token::EndFor, 7)),
+            s if s.starts_with("WHILE") => Some((Token::While, 5)),
+            s if s.starts_with("END_WHILE") => Some((Token::EndWhile, 9)),
+
+            // Program / Action / Function / Function block
+            s if s.starts_with("PROGRAM") => Some((Token::Program, 7)),
+            s if s.starts_with("END_PROGRAM") => Some((Token::EndProgram, 11)),
+            s if s.starts_with("EXIT") => Some((Token::Exit, 4)),
+            s if s.starts_with("ACTION") => Some((Token::Action, 6)),
+            s if s.starts_with("END_ACTION") => Some((Token::EndAction, 10)),
+            s if s.starts_with("FUNCTION_BLOCK") => Some((Token::FunctionBlock, 14)),
+            s if s.starts_with("END_FUNCTION_BLOCK") => Some((Token::EndFunctionBlock, 18)),
+            s if s.starts_with("FUNCTION") => Some((Token::Function, 8)),
+            s if s.starts_with("END_FUNCTION") => Some((Token::EndFunction, 12)),
+            s if s.starts_with("RETURN") => Some((Token::Return, 6)),
+
+            // Variable declarations
+            s if s.starts_with("VAR_INPUT") => Some((Token::VarInput, 9)),
+            s if s.starts_with("VAR_OUTPUT") => Some((Token::VarOutput, 10)),
+            s if s.starts_with("VAR") => Some((Token::Var, 3)),
+            s if s.starts_with("CONSTANT") => Some((Token::Constant, 8)),
+            s if s.starts_with("END_VAR") => Some((Token::EndVar, 7)),
+
+            // Type declarations
+            s if s.starts_with("TYPE") => Some((Token::Type, 4)),
+            s if s.starts_with("END_TYPE") => Some((Token::EndType, 8)),
+            s if s.starts_with("STRUCT") => Some((Token::Struct, 6)),
+            s if s.starts_with("END_STRUCT") => Some((Token::EndStruct, 10)),
+            s if s.starts_with("UNION") => Some((Token::Union, 5)),
+            s if s.starts_with("END_UNION") => Some((Token::EndUnion, 9)),
+            _ => None,
+        }
     }
 
     fn get_line_comment_token(&self) -> TokenResult<'a> {
